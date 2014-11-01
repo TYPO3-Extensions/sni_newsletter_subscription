@@ -37,7 +37,7 @@ class Tx_SniNewsletterSubscription_Domain_Repository_TtAddressRepository extends
 			$query->getQuerySettings()->setRespectStoragePage(FALSE);
 		}
 		if(!$enableFields) {			
-			$query->getQuerySettings()->setRespectEnableFields(FALSE);
+			$query->getQuerySettings()->setIgnoreEnableFields(TRUE);
 			$constraints[] = $query->equals('deleted', 0);
 		}
 		$constraints[] = $query->equals('email',$email);
@@ -62,7 +62,7 @@ class Tx_SniNewsletterSubscription_Domain_Repository_TtAddressRepository extends
 		if(!$extConf['checkForPid']) {
 			$query->getQuerySettings()->setRespectStoragePage(FALSE);
 		}
-		$query->getQuerySettings()->setRespectEnableFields(FALSE);
+        $query->getQuerySettings()->setIgnoreEnableFields(TRUE);
 		$query->matching($query->logicalAnd(
 			$query->equals('deleted',0),
 			$query->equals('uid', (int)$uid)

@@ -28,21 +28,27 @@
  */
 class Tx_SniNewsletterSubscription_Domain_Validator_NewsletterValidator extends Tx_Extbase_Validation_Validator_AbstractValidator {
 
-	public function isValid($value) {
-		$userRepository = t3lib_div::makeInstance('Tx_SniNewsletterSubscription_Domain_Repository_UserRepository');
-		$user = $userRepository->findByEmail((string)$value);		
-		if($user) {
+    /**
+    * @var \TYPO3\CMS\Extbase\Object\ObjectManagerInterface
+    * @inject
+    */
+    protected $objectManager;
+    
+	public function isValid($value) {        
+		$userRepository = $this->objectManager->get('Tx_SniNewsletterSubscription_Domain_Repository_UserRepository');
+		$user = $userRepository->findByEmail((string)$value);
+		if($user && $user->getEmail()) {
 			if(count($user->getModuleSysDmailCategory()) > 0) {
 				$this->addError('You are already registered for the newsletter',1308671052);
 				return (FALSE);
 			} 
 		}
-		$addressRepository = t3lib_div::makeInstance('Tx_SniNewsletterSubscription_Domain_Repository_TtAddressRepository');
+		$addressRepository = $this->objectManager->get('Tx_SniNewsletterSubscription_Domain_Repository_TtAddressRepository');
 		$address = $addressRepository->findEmail((string)$value);
 		if($address) {
 			$this->addError('You are already registered for the newsletter',1308671052);
 			return (FALSE);
-		}
+		} 
 		return (TRUE);
 	}
 

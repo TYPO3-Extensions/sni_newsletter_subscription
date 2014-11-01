@@ -44,18 +44,23 @@ class Tx_SniNewsletterSubscription_Controller_SubscrController extends Tx_Extbas
 	public function confirmAction() {
 		$table = t3lib_div::_GP('t');
 		$uid = (int)t3lib_div::_GP('u');
+        $html = (boolean)t3lib_div::_GP('html');
 		if($uid && t3lib_div::stdAuthCode($uid) == t3lib_div::_GP('a')) {
 			switch ($table) {
 				case 'fe_users':
-					$userRepository = t3lib_div::makeInstance('Tx_SniNewsletterSubscription_Domain_Repository_UserRepository');
+					$userRepository = $this->objectManager->get('Tx_SniNewsletterSubscription_Domain_Repository_UserRepository');
 					$subscriber = $userRepository->findByUid($uid);
 					if($subscriber) {
 						if(count($subscriber->getModuleSysDmailCategory()) <= 0) { // ansonsten hat sich der User zwischenzeitlich schon über My Account am Newsletter angemeldet bzw. händisch.
-							$dmailCategoryRepository = t3lib_div::makeInstance('Tx_SniNewsletterSubscription_Domain_Repository_DmailCategoryRepository');
+							$dmailCategoryRepository = $this->objectManager->get('Tx_SniNewsletterSubscription_Domain_Repository_DmailCategoryRepository');
 							$categories = $dmailCategoryRepository->findByUids(explode(',',t3lib_div::_GP('c')));
 							if(count($categories) > 0) {
+                                if($html) {
+                                    $subscriber->setModuleSysDmailHtml(TRUE);
+                                }
                                 $subscriber->setModuleSysDmailNewsletter(TRUE);
 								$subscriber->addAllModuleSysDmailCategory($categories);                               
+                                $userRepository->update($subscriber);
 							}
 							else {
 								$this->view->assign('error',TRUE);
@@ -69,11 +74,12 @@ class Tx_SniNewsletterSubscription_Controller_SubscrController extends Tx_Extbas
 				case 'tt_address':
 					$subscriber = $this->addressRepository->findAlsoHiddenByUid($uid);
 					if($subscriber) {
-						$dmailCategoryRepository = t3lib_div::makeInstance('Tx_SniNewsletterSubscription_Domain_Repository_DmailCategoryRepository');
+						$dmailCategoryRepository = $this->objectManager->get('Tx_SniNewsletterSubscription_Domain_Repository_DmailCategoryRepository');
 						$categories = $dmailCategoryRepository->findByUids(explode(',',t3lib_div::_GP('c')));
 						if(count($categories) > 0) {
+                            $subscriber->setHidden(FALSE);
 							$subscriber->addAllModuleSysDmailCategory($categories);
-							$subscriber->setHidden(FALSE);
+							$this->addressRepository->update($subscriber);
 						}
 						else {
 							$this->view->assign('error',TRUE);
@@ -105,13 +111,14 @@ class Tx_SniNewsletterSubscription_Controller_SubscrController extends Tx_Extbas
 				// Direct Mail gibt bei Plaintext Messages als ###SYS_TABLE_NAME### nur den ersten Buchstaben der Tabelle an, bei HTML Mail den kompletten Tabellennamen
 				case 'fe_users':
 				case 'f':
-					$userRepository = t3lib_div::makeInstance('Tx_SniNewsletterSubscription_Domain_Repository_UserRepository');
+					$userRepository = $this->objectManager->get('Tx_SniNewsletterSubscription_Domain_Repository_UserRepository');
 					$subscriber = $userRepository->findByUid($uid);
 					if($subscriber) {
                         $subscriber->setModuleSysDmailNewsletter(FALSE);
 						if(count($subscriber->getModuleSysDmailCategory()) > 0) {
 							$subscriber->removeAllModuleSysDmailCategory();                            
 						}
+                        $userRepository->update($subscriber);
 					}
 					else {
 						$this->view->assign('error',TRUE);
@@ -122,6 +129,7 @@ class Tx_SniNewsletterSubscription_Controller_SubscrController extends Tx_Extbas
 					$subscriber = $this->addressRepository->findAlsoHiddenByUid($uid);
 					if($subscriber) {
 						$this->addressRepository->remove($subscriber);
+                        $this->addressRepository->update($subscriber);
 					}
 					else {
 						$this->view->assign('error',TRUE);
@@ -161,12 +169,12 @@ class Tx_SniNewsletterSubscription_Controller_SubscrController extends Tx_Extbas
 		}
 		else {
 			$this->view->assign('firstCall', FALSE);
-		}
-		$dmailCategoryRepository = t3lib_div::makeInstance('Tx_SniNewsletterSubscription_Domain_Repository_DmailCategoryRepository');
+		}	
+        $dmailCategoryRepository = $this->objectManager->get('Tx_SniNewsletterSubscription_Domain_Repository_DmailCategoryRepository');
 		$categories = $dmailCategoryRepository->findByPid(explode(',',$this->settings['module_sys_dmail_category_PIDLIST']));
 		$this->view->assign('categories', $categories);
 		$this->view->assign('gp', $this->request->getArguments());
-		$this->view->assign('newAddress', $newAddress);
+		$this->view->assign('newAddress', $newAddress); 
 	}
 
 	/**
@@ -177,10 +185,10 @@ class Tx_SniNewsletterSubscription_Controller_SubscrController extends Tx_Extbas
 	 * @validate $moduleSysDmailCategory Tx_SniNewsletterSubscription_Validators_CategoryValidator
 	 */
 	public function createAction(Tx_SniNewsletterSubscription_Domain_Model_TtAddress $newAddress, $moduleSysDmailCategory = Array(), $moduleSysDmailHtml=FALSE) {
-		$userRepository = t3lib_div::makeInstance('Tx_SniNewsletterSubscription_Domain_Repository_UserRepository');
+		$userRepository = $this->objectManager->get('Tx_SniNewsletterSubscription_Domain_Repository_UserRepository');
 		$user = $userRepository->findByEmail($newAddress->getEmail());
 		if($user) {
-			// User existiert bereits, fe_users Feld moduleSysDmailHtml über Link in Confirmation upzudaten!
+			// User existiert bereits, fe_users Feld moduleSysDmailHtml über Link in Confirmation (&html=) upzudaten!
 			$updateTable = 'fe_users';
 			$subscriber = $user;
 		}
@@ -199,7 +207,7 @@ class Tx_SniNewsletterSubscription_Controller_SubscrController extends Tx_Extbas
 				$newAddress->setName($newAddress->getFirstName().($newAddress->getLastName() ? ' '.$newAddress->getLastName() : ''));
 				$this->addressRepository->add($newAddress);
 				// Persistiere schon hier wir brauchen nemlich die UID vom neu angelgten tt_address Eintrag
-				$persistenceManager = t3lib_div::makeInstance('Tx_Extbase_Persistence_Manager');
+				$persistenceManager = $this->objectManager->get('Tx_Extbase_Persistence_Manager');
 				$persistenceManager->persistAll();
 				$subscriber = $newAddress;
 			}
@@ -212,7 +220,7 @@ class Tx_SniNewsletterSubscription_Controller_SubscrController extends Tx_Extbas
 		$fluidData = Array(
 			'subscriber' => $subscriber,
 			'deleteParams' => Array('w' => 'd', 't' => $updateTable, 'u' => $subscriber->getUid(), 'a' => $authCode),
-			'confirmParams' => Array('w' => 'c', 't' => $updateTable, 'u' => $subscriber->getUid(), 'a' => $authCode, 'c' => implode(',',$moduleSysDmailCategory)),
+			'confirmParams' => Array('w' => 'c', 't' => $updateTable, 'u' => $subscriber->getUid(), 'a' => $authCode, 'c' => implode(',',$moduleSysDmailCategory), 'html' => (boolean)$moduleSysDmailHtml),
 		);
 		$contentType = ($moduleSysDmailHtml ? 'text/html' : 'text/plain');
 		$this->sendTemplateEmail($mailTo, $mailFrom, $mailTitle, 'ConfirmSubscription', $fluidData, $contentType);

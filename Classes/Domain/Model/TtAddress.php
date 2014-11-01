@@ -168,7 +168,7 @@ class Tx_SniNewsletterSubscription_Domain_Model_TtAddress extends Tx_Extbase_Dom
 	/**
 	 * Adds a category
 	 *
-	 * @param Tx_SjrOffers_Domain_Model_Category The category to be added
+	 * @param Tx_SniNewsletterSubscription_Domain_Model_DmailCategory to be added
 	 * @return void
 	 */
 	public function addModuleSysDmailCategory(Tx_SniNewsletterSubscription_Domain_Model_DmailCategory $moduleSysDmailCategory) {

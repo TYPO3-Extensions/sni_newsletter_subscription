@@ -27,4 +27,7 @@ plugin.tx_sninewslettersubscription {
 	settings {
 		module_sys_dmail_category_PIDLIST = 
 	}
+    features {
+        rewrittenPropertyMapper = 0
+    }  
 }
