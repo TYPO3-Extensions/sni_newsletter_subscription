@@ -207,11 +207,11 @@ class Tx_SniNewsletterSubscription_Controller_SubscrController extends Tx_Extbas
 				$newAddress->setName($newAddress->getFirstName().($newAddress->getLastName() ? ' '.$newAddress->getLastName() : ''));
 				$this->addressRepository->add($newAddress);
 				// Persistiere schon hier wir brauchen nemlich die UID vom neu angelgten tt_address Eintrag
-				$persistenceManager = $this->objectManager->get('Tx_Extbase_Persistence_Manager');
-				$persistenceManager->persistAll();
+                $persistenceManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager');
+                $persistenceManager->persistAll();
 				$subscriber = $newAddress;
 			}
-		}
+		}        
 		// Versende Confirmation Mail an user
 		$mailTitle = $this->translate('subscribeMailTitle',Array($this->settings['siteName']));
 		$mailFrom = Array($this->settings['fromMail'] => $this->settings['fromName']);
